@@ -7,6 +7,7 @@
 #include "MantidGeometry/Objects/ShapeFactory.h"
 #include "MantidGeometry/Rendering/GeometryHandler.h"
 #include "MantidGeometry/Rendering/ShapeInfo.h"
+#include "MantidGeometry/Rendering/ShapeInfo.h"
 #include "MantidGeometry/Surfaces/Cone.h"
 #include "MantidGeometry/Surfaces/Cylinder.h"
 #include "MantidGeometry/Surfaces/Plane.h"
@@ -1413,6 +1414,7 @@ ShapeFactory::createHexahedralShape(double xlb, double xlf, double xrf,
 
   shapeInfo.setHexahedron(hex.lbb, hex.lfb, hex.rfb, hex.rbb, hex.lbt, hex.lft,
                           hex.rft, hex.rbt);
+
   handler->setShapeInfo(std::move(shapeInfo));
 
   shape->defineBoundingBox(std::max(xrb, xrf), yrf, ZDEPTH, std::min(xlf, xlb),
@@ -1426,6 +1428,7 @@ void ShapeFactory::createGeometryHandler(Poco::XML::Element *pElem,
                                          boost::shared_ptr<CSGObject> Obj) {
 
   auto geomHandler = boost::make_shared<GeometryHandler>(Obj);
+  detail::ShapeInfo shapeInfo;
   detail::ShapeInfo shapeInfo;
   Obj->setGeometryHandler(geomHandler);
 

@@ -135,19 +135,19 @@ void Renderer::doRenderCuboid(const ShapeInfo &shapeInfo) const {
   vertex[7] = vec0 + vec1 + vec2;
 
   int faceindex[6][4] = {
-      {0, 1, 2, 3}, // top
-      {0, 3, 7, 4}, // left
-      {3, 2, 6, 7}, // back
-      {2, 1, 5, 6}, // right
-      {0, 4, 5, 1}, // front
-      {4, 7, 6, 5}, // bottom
+    { 0, 1, 2, 3 }, // top
+    { 0, 3, 7, 4 }, // left
+    { 3, 2, 6, 7 }, // back
+    { 2, 1, 5, 6 }, // right
+    { 0, 4, 5, 1 }, // front
+    { 4, 7, 6, 5 }, // bottom
   };
   V3D normal;
   // first face
   glBegin(GL_QUADS);
   for (auto &row : faceindex) {
     normal = (vertex[row[0]] - vertex[row[1]])
-                 .cross_prod((vertex[row[0]] - vertex[row[2]]));
+      .cross_prod((vertex[row[0]] - vertex[row[2]]));
     normal.normalize();
     glNormal3d(normal[0], normal[1], normal[2]);
     for (const int ij : row) {
@@ -226,7 +226,7 @@ void Renderer::doRenderCone(const ShapeInfo &shapeInfo) const {
   auto radius = shapeInfo.radius();
   auto height = shapeInfo.height();
   gluCylinder(qobj, 0, radius, height, Geometry::Cone::g_nslices,
-              Geometry::Cone::g_nstacks);
+    Geometry::Cone::g_nstacks);
   glTranslated(0.0, 0.0, height);
   gluDisk(qobj, 0, radius, Geometry::Cone::g_nslices, 1);
   glPopMatrix();
