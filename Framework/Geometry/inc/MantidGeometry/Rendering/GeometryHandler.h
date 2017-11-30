@@ -2,11 +2,10 @@
 #define GEOMETRYHANDLER_H
 
 #include "MantidGeometry/DllConfig.h"
+#include "MantidGeometry/Rendering/Renderer.h"
 #include "MantidGeometry/Rendering/ShapeInfo.h"
 #include "MantidKernel/Logger.h"
 #include "MantidKernel/V3D.h"
-#include <boost/shared_ptr.hpp>
-#include "MantidGeometry/Rendering/GeometryRenderer.h"
 #include <vector>
 
 namespace Mantid {
@@ -19,7 +18,9 @@ namespace detail {
 class Renderer;
 class GeometryTriangulator;
 }
-class GeometryRenderer;
+namespace detail {
+class Renderer;
+}
 
 /**
 \class GeometryHandler
