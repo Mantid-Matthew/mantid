@@ -225,14 +225,26 @@ size_t InstrumentVisitor::registerGenericObjComponent(
 }
 
 /**
+* Register a structured bank
+* @param bank : Rectangular Detector
+* @return index assigned
+*/
+size_t InstrumentVisitor::registerRectangularBank(const ICompAssembly &bank) {
+  auto index = registerComponentAssembly(bank);
+  size_t rangesIndex = index - m_orderedDetectorIds->size();
+  (*m_componentType)[rangesIndex] = Beamline::ComponentType::Rectangular;
+  return index;
+}
+
+/**
  * Register a structured bank
- * @param bank : Rectangular Detector
+ * @param bank : Structured Detector
  * @return index assigned
  */
 size_t InstrumentVisitor::registerStructuredBank(const ICompAssembly &bank) {
   auto index = registerComponentAssembly(bank);
   size_t rangesIndex = index - m_orderedDetectorIds->size();
-  (*m_componentType)[rangesIndex] = Beamline::ComponentType::Rectangular;
+  (*m_componentType)[rangesIndex] = Beamline::ComponentType::Structured;
   return index;
 }
 

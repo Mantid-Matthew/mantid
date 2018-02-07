@@ -172,6 +172,9 @@ public:
       const Mantid::Geometry::IObjComponent &objComponent) override;
 
   virtual size_t
+  registerRectangularBank(const Mantid::Geometry::ICompAssembly &bank) override;
+
+  virtual size_t
   registerStructuredBank(const Mantid::Geometry::ICompAssembly &bank) override;
 
   virtual size_t
