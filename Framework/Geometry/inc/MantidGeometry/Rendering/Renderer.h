@@ -58,8 +58,6 @@ public:
   void renderTriangulated(detail::GeometryTriangulator &triangulator) const;
   /// Renders a sphere, cuboid, hexahedron, cone or cylinder
   void renderShape(const ShapeInfo &shapeInfo) const;
-  /// Renders a Bitmap (used for rendering RectangularDetector)
-  void renderBitmap(const RectangularDetector &rectDet) const;
   /// Renders structured geometry (used for rendering StructuredDetector)
   void renderStructured(const StructuredDetector &structDet) const;
 
@@ -90,8 +88,6 @@ private:
   /// Render OpenCascade Shape
   void doRender(const TopoDS_Shape &ObjSurf) const;
 #endif
-  /// Renders a Bitmap (used for rendering RectangularDetector)
-  void doRender(const RectangularDetector &rectDet) const;
   /// Renders structured geometry (used for rendering StructuredDetector)
   void doRender(const StructuredDetector &structDet) const;
 };
