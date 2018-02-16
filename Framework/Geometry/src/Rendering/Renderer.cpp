@@ -1,5 +1,6 @@
 #include "MantidGeometry/Rendering/Renderer.h"
 #include "MantidGeometry/IObjComponent.h"
+#include "MantidGeometry/Instrument/ComponentInfo.h"
 #include "MantidGeometry/Instrument/RectangularDetector.h"
 #include "MantidGeometry/Instrument/StructuredDetector.h"
 #include "MantidGeometry/Rendering/GeometryTriangulator.h"
@@ -54,20 +55,37 @@ namespace Geometry {
 using Kernel::Quat;
 using Kernel::V3D;
 
-namespace detail {
-void Renderer::renderIObjComponent(const IObjComponent &objComp,
-                                   RenderMode mode) const {
-  render(mode, objComp);
+namespace {
+// Round a number up to the nearest power  of 2
+size_t roundToNearestPowerOfTwo(size_t val) {
+  size_t rounded = 2;
+  while (val > rounded)
+    rounded *= 2;
+  return rounded;
 }
 
-void Renderer::renderTriangulated(detail::GeometryTriangulator &triangulator,
-                                  RenderMode mode) const {
+void addVertex(Mantid::Kernel::V3D &pos, double xstep, double ystep) {
+  pos += V3D(xstep * (+0.5), ystep * (-0.5),
+             0.0); // Adjust to account for the size of a pixel
+  glVertex3f(static_cast<GLfloat>(pos.X()), static_cast<GLfloat>(pos.Y()),
+             static_cast<GLfloat>(pos.Z()));
+}
+
+} // namespace
+
+namespace detail {
+void Renderer::renderIObjComponent(const IObjComponent &objComp) const {
+  render(objComp);
+}
+
+void Renderer::renderTriangulated(
+    detail::GeometryTriangulator &triangulator) const {
 #ifdef ENABLE_OPENCASCADE
   auto surface = triangulator.getOCSurface();
   if (surface && !surface->IsNull())
-    render(mode, *surface);
+    render(*surface);
   else
-    render(mode, triangulator);
+    render(triangulator);
 #else
   render(mode, triangulator);
 #endif
@@ -76,36 +94,34 @@ void Renderer::renderTriangulated(detail::GeometryTriangulator &triangulator,
 void Renderer::renderShape(const ShapeInfo &shapeInfo) const {
   switch (shapeInfo.shape()) {
   case ShapeInfo::GeometryShape::CUBOID:
-    doRenderCuboid(shapeInfo);
+    renderCuboid(shapeInfo);
     break;
   case ShapeInfo::GeometryShape::SPHERE:
-    doRenderSphere(shapeInfo);
+    renderSphere(shapeInfo);
     break;
   case ShapeInfo::GeometryShape::HEXAHEDRON:
-    doRenderHexahedron(shapeInfo);
+    renderHexahedron(shapeInfo);
     break;
   case ShapeInfo::GeometryShape::CONE:
-    doRenderCone(shapeInfo);
+    renderCone(shapeInfo);
     break;
   case ShapeInfo::GeometryShape::CYLINDER:
-    doRenderCylinder(shapeInfo);
+    renderCylinder(shapeInfo);
     break;
   default:
     return;
   }
 }
 
-void Renderer::renderBitmap(const RectangularDetector &rectDet,
-                            RenderMode mode) const {
-  render(mode, rectDet);
+void Renderer::renderBitmap(const RectangularDetector &rectDet) const {
+  render(rectDet);
 }
 
-void Renderer::renderStructured(const StructuredDetector &structDet,
-                                RenderMode mode) const {
-  render(mode, structDet);
+void Renderer::renderStructured(const StructuredDetector &structDet) const {
+  render(structDet);
 }
 
-void Renderer::doRenderSphere(const ShapeInfo &shapeInfo) const {
+void Renderer::renderSphere(const ShapeInfo &shapeInfo) const {
   // create glu sphere
   GLUquadricObj *qobj = gluNewQuadric();
   gluQuadricDrawStyle(qobj, GLU_FILL);
@@ -118,7 +134,7 @@ void Renderer::doRenderSphere(const ShapeInfo &shapeInfo) const {
   gluDeleteQuadric(qobj);
 }
 
-void Renderer::doRenderCuboid(const ShapeInfo &shapeInfo) const {
+void Renderer::renderCuboid(const ShapeInfo &shapeInfo) const {
   const auto &points = shapeInfo.points();
   V3D vec0 = points[0];
   V3D vec1 = points[1] - points[0];
@@ -173,7 +189,7 @@ void Renderer::doRenderCuboid(const ShapeInfo &shapeInfo) const {
   glEnd();
 }
 
-void Renderer::doRenderHexahedron(const ShapeInfo &shapeInfo) const {
+void Renderer::renderHexahedron(const ShapeInfo &shapeInfo) const {
   glBegin(GL_QUADS);
   const auto &points = shapeInfo.points();
   // bottom
@@ -210,7 +226,7 @@ void Renderer::doRenderHexahedron(const ShapeInfo &shapeInfo) const {
   glEnd();
 }
 
-void Renderer::doRenderCone(const ShapeInfo &shapeInfo) const {
+void Renderer::renderCone(const ShapeInfo &shapeInfo) const {
   glPushMatrix();
   GLUquadricObj *qobj = gluNewQuadric();
   gluQuadricDrawStyle(qobj, GLU_FILL);
@@ -232,7 +248,7 @@ void Renderer::doRenderCone(const ShapeInfo &shapeInfo) const {
   glPopMatrix();
 }
 
-void Renderer::doRenderCylinder(const ShapeInfo &shapeInfo) const {
+void Renderer::renderCylinder(const ShapeInfo &shapeInfo) const {
   GLUquadricObj *qobj = gluNewQuadric();
   gluQuadricDrawStyle(qobj, GLU_FILL);
   gluQuadricNormals(qobj, GL_SMOOTH);
@@ -336,6 +352,64 @@ void Renderer::doRender(const TopoDS_Shape &ObjSurf) const {
   glEnd();
 }
 #endif
+
+std::pair<size_t, size_t>
+Renderer::getCorrectedTextureSize(const size_t width, const size_t height) {
+  return {roundToNearestPowerOfTwo(width), roundToNearestPowerOfTwo(height)};
+}
+
+void Renderer::renderRectangularBank(const Geometry::ComponentInfo &compInfo,
+                                     size_t index) {
+  auto bank = compInfo.quadrilateralComponent(index);
+  auto xstep = (compInfo.position(bank.bottomRight).X() -
+                compInfo.position(bank.bottomLeft).X()) /
+               bank.nX;
+  auto ystep = (compInfo.position(bank.topRight).Y() -
+                compInfo.position(bank.bottomLeft).Y()) /
+               bank.nY;
+  // Because texture colours are combined with the geometry colour
+  // make sure the current colour is white
+  glColor3f(1.0f, 1.0f, 1.0f);
+
+  // Nearest-neighbor scaling
+  GLint texParam = GL_NEAREST;
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texParam);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texParam);
+
+  glEnable(GL_TEXTURE_2D); // enable texture mapping
+
+  size_t texx, texy;
+  auto res = getCorrectedTextureSize(bank.nX, bank.nY);
+  texx = res.first;
+  texy = res.second;
+  double tex_frac_x = (1.0 * bank.nX) / (texx);
+  double tex_frac_y = (1.0 * bank.nY) / (texy);
+
+  glBegin(GL_QUADS);
+
+  auto basePos = compInfo.position(bank.bottomLeft);
+  glTexCoord2f(0.0, 0.0);
+  auto pos = compInfo.position(bank.bottomLeft) - basePos;
+  addVertex(pos, xstep, ystep);
+
+  glTexCoord2f(static_cast<GLfloat>(tex_frac_x), 0.0);
+  pos = compInfo.position(bank.bottomRight) - basePos;
+  addVertex(pos, xstep, ystep);
+
+  glTexCoord2f(static_cast<GLfloat>(tex_frac_x),
+               static_cast<GLfloat>(tex_frac_y));
+  pos = compInfo.position(bank.topRight) - basePos;
+  addVertex(pos, xstep, ystep);
+
+  glTexCoord2f(0.0, static_cast<GLfloat>(tex_frac_y));
+  pos = compInfo.position(bank.topLeft) - basePos;
+  addVertex(pos, xstep, ystep);
+
+  glEnd();
+
+  glDisable(
+      GL_TEXTURE_2D); // stop texture mapping - not sure if this is necessary.
+}
 
 // Render Bitmap for RectangularDetector
 void Renderer::doRender(const RectangularDetector &rectDet) const {
