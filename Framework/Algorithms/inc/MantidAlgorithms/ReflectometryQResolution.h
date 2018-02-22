@@ -41,7 +41,6 @@ public:
 private:
   enum class SumType { LAMBDA, Q };
   struct Setup {
-    size_t beamCentre{0};
     double detectorResolution{0.};
     size_t foregroundStartPixel{0};
     size_t foregroundEndPixel{0};
@@ -59,6 +58,7 @@ private:
   void exec() override;
   double angularResolutionSquared(API::MatrixWorkspace_sptr &ws, const API::MatrixWorkspace &directWS, const size_t wsIndex, const Setup &setup, const double beamFWHM, const double incidentFWHM, const double slit1FWHM);
   double beamRMSVariation(API::MatrixWorkspace_sptr &ws, const Setup &setup);
+  void convertToMomentumTransfer(API::MatrixWorkspace_sptr &ws);
   double detectorDA(const API::MatrixWorkspace &ws, const size_t wsIndex, const Setup &setup, const double incidentFWHM);
   const Setup experimentSetup(const API::MatrixWorkspace &ws);
   double incidentAngularSpread(const Setup &setup);

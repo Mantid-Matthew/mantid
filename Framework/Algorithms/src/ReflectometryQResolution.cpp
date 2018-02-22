@@ -15,7 +15,6 @@
 
 namespace {
 namespace Prop {
-static const std::string BEAM_CENTRE{"BeamCentre"};
 static const std::string CHOPPER_OPENING{"ChopperOpening"};
 static const std::string CHOPPER_PAIR_DIST{"ChopperPairDistance"};
 static const std::string CHOPPER_SPEED{"ChopperSpeed"};
@@ -75,7 +74,6 @@ const std::string ReflectometryQResolution::summary() const {
 /** Initialize the algorithm's properties.
  */
 void ReflectometryQResolution::init() {
-  auto inMomentumTransfer = boost::make_shared<API::WorkspaceUnitValidator>("MomentumTransfer");
   auto inWavelength = boost::make_shared<API::WorkspaceUnitValidator>("Wavelength");
   auto twoElementArray = boost::make_shared<Kernel::ArrayLengthValidator<int>>(2);
   auto mandatoryDouble = boost::make_shared<Kernel::MandatoryValidator<double>>();
@@ -86,8 +84,8 @@ void ReflectometryQResolution::init() {
   auto acceptableSumTypes = boost::make_shared<Kernel::ListValidator<std::string>>(sumTypes);
   declareProperty(
       Kernel::make_unique<API::WorkspaceProperty<API::MatrixWorkspace>>(Prop::INPUT_WS, "",
-                                                             Direction::Input, inMomentumTransfer),
-      "A reflectivity workspace in momentum transfer.");
+                                                             Direction::Input, inWavelength),
+      "A reflectivity workspace in wavelenght.");
   declareProperty(
       Kernel::make_unique<API::WorkspaceProperty<API::MatrixWorkspace>>(Prop::OUTPUT_WS, "",
                                                              Direction::Output, inWavelength),
@@ -100,7 +98,6 @@ void ReflectometryQResolution::init() {
       Kernel::make_unique<API::WorkspaceProperty<API::MatrixWorkspace>>(Prop::DIRECT_BEAM_WS, "",
                                                              Direction::Input),
       "A direct beam workspace in wavelength.");
-  declareProperty(Prop::BEAM_CENTRE, EMPTY_DBL(), mandatoryDouble, "Reflected beam centre pixel.");
   declareProperty(Prop::FOREGROUND, std::vector<int>(), twoElementArray, "A list of three elements [low angle width, center, high angle width] defining the foreground region in pixels.");
   declareProperty(Prop::SUM_TYPE, SumTypeChoice::LAMBDA, acceptableSumTypes, "The type of summation performed for the input workspace.");
   declareProperty(Prop::POLARIZED, false, "True if the input workspace is part of polarization analysis experiment, false otherwise.");
@@ -125,18 +122,16 @@ void ReflectometryQResolution::exec() {
   API::MatrixWorkspace_sptr directWS = getProperty(Prop::DIRECT_BEAM_WS);
   auto setup = experimentSetup(*reflectedWS);
   API::MatrixWorkspace_sptr outWS;
-  if (getPropertyValue(Prop::INPUT_WS) == getPropertyValue(Prop::OUTPUT_WS)) {
-    outWS = inWS;
-  } else {
-    outWS = inWS->clone();
-  }
+  outWS = inWS->clone();
+  convertToMomentumTransfer(outWS);
   const auto beamFWHM = beamRMSVariation(reflectedWS, setup);
   const auto incidentFWHM = incidentAngularSpread(setup);
   const auto slit1FWHM = slit1AngularSpread(setup);
   const auto &spectrumInfo = inWS->spectrumInfo();
   for (size_t wsIndex = 0; wsIndex < outWS->getNumberHistograms(); ++wsIndex) {
     auto dx = Kernel::make_cow<HistogramData::HistogramDx>(outWS->y(0).size(), 0);
-    const auto wavelengths = reflectedWS->points(setup.beamCentre);
+    const auto &wavelengths = inWS->x(wsIndex);
+    const auto &qs = outWS->x(wsIndex);
     outWS->setSharedDx(wsIndex, dx);
     if (spectrumInfo.isMonitor(wsIndex) || spectrumInfo.isMasked(wsIndex)) {
       // Skip monitors & masked spectra, leave DX to zero.
@@ -147,7 +142,7 @@ void ReflectometryQResolution::exec() {
       const auto wavelength = wavelengths[i];
       const auto deltaLambda = wavelengthResolution(*inWS, wsIndex, wavelength);
       const auto deltaThetaSq = angularResolutionSquared(inWS, *directWS, wsIndex, setup, beamFWHM, incidentFWHM, slit1FWHM);
-      resolutions[i] = wavelength * std::sqrt(pow<2>(deltaLambda) + deltaThetaSq);
+      resolutions[i] = qs[i] * std::sqrt(pow<2>(deltaLambda) + deltaThetaSq);
     }
   }
   setProperty(Prop::OUTPUT_WS, outWS);
@@ -214,6 +209,15 @@ double ReflectometryQResolution::beamRMSVariation(API::MatrixWorkspace_sptr &ws,
   return 2. * std::sqrt(2. * std::log(2.)) * pixelSize * std::sqrt(variance);
 }
 
+void ReflectometryQResolution::convertToMomentumTransfer(API::MatrixWorkspace_sptr &ws) {
+  auto convert = createChildAlgorithm("ConvertUnits");
+  convert->setProperty("InputWorkspace", ws);
+  convert->setProperty("OutputWorkspace", "unused_for_child");
+  convert->setProperty("Target", "MomentumTransfer");
+  convert->execute();
+  ws = convert->getProperty("OutputWorkspace");
+}
+
 // TODO Find out what on the earth DA means (from COSMOS).
 double ReflectometryQResolution::detectorDA(const API::MatrixWorkspace &ws, const size_t wsIndex, const Setup &setup, const double incidentFWHM) {
   // da_det in COSMOS
@@ -227,7 +231,6 @@ double ReflectometryQResolution::detectorDA(const API::MatrixWorkspace &ws, cons
 
 const ReflectometryQResolution::Setup ReflectometryQResolution::experimentSetup(const API::MatrixWorkspace &ws) {
   Setup s;
-  s.beamCentre = static_cast<size_t>(getProperty(Prop::BEAM_CENTRE));
   s.detectorResolution = getProperty(Prop::DETECTOR_RESOLUTION);
   const std::vector<int> foreground = getProperty(Prop::FOREGROUND);
   const auto lowPixel = static_cast<size_t>(foreground.front());
