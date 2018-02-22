@@ -2,6 +2,7 @@
 
 #include "MantidAPI/Run.h"
 #include "MantidAPI/SpectrumInfo.h"
+#include "MantidAPI/WorkspaceUnitValidator.h"
 #include "MantidDataObjects/Workspace2D.h"
 #include "MantidDataObjects/WorkspaceCreation.h"
 #include "MantidGeometry/Instrument.h"
@@ -14,6 +15,7 @@
 
 namespace {
 namespace Prop {
+static const std::string BEAM_CENTRE{"BeamCentre"};
 static const std::string CHOPPER_OPENING{"ChopperOpening"};
 static const std::string CHOPPER_PAIR_DIST{"ChopperPairDistance"};
 static const std::string CHOPPER_SPEED{"ChopperSpeed"};
@@ -24,6 +26,7 @@ static const std::string INPUT_WS{"InputWorkspace"};
 static const std::string OUTPUT_WS{"OutputWorkspace"};
 static const std::string PIXEL_SIZE{"PixelSize"};
 static const std::string POLARIZED{"Polarized"};
+static const std::string REFLECTED_BEAM_WS{"ReflectedBeamWorkspace"};
 static const std::string SLIT1_NAME{"Slit1Name"};
 static const std::string SLIT1_SIZE_LOG{"Slit1SizeSampleLog"};
 static const std::string SLIT2_NAME{"Slit2Name"};
@@ -72,6 +75,8 @@ const std::string ReflectometryQResolution::summary() const {
 /** Initialize the algorithm's properties.
  */
 void ReflectometryQResolution::init() {
+  auto inMomentumTransfer = boost::make_shared<API::WorkspaceUnitValidator>("MomentumTransfer");
+  auto inWavelength = boost::make_shared<API::WorkspaceUnitValidator>("Wavelength");
   auto twoElementArray = boost::make_shared<Kernel::ArrayLengthValidator<int>>(2);
   auto mandatoryDouble = boost::make_shared<Kernel::MandatoryValidator<double>>();
   auto mandatoryString = boost::make_shared<Kernel::MandatoryValidator<std::string>>();
@@ -81,16 +86,21 @@ void ReflectometryQResolution::init() {
   auto acceptableSumTypes = boost::make_shared<Kernel::ListValidator<std::string>>(sumTypes);
   declareProperty(
       Kernel::make_unique<API::WorkspaceProperty<API::MatrixWorkspace>>(Prop::INPUT_WS, "",
-                                                             Direction::Input),
-      "A reflectivity workspace in wavelength.");
+                                                             Direction::Input, inMomentumTransfer),
+      "A reflectivity workspace in momentum transfer.");
   declareProperty(
       Kernel::make_unique<API::WorkspaceProperty<API::MatrixWorkspace>>(Prop::OUTPUT_WS, "",
-                                                             Direction::Output),
+                                                             Direction::Output, inWavelength),
       "The input workspace with DX values set to the Qz resolution.");
+  declareProperty(
+      Kernel::make_unique<API::WorkspaceProperty<API::MatrixWorkspace>>(Prop::REFLECTED_BEAM_WS, "",
+                                                             Direction::Input, inWavelength),
+      "A reflected beam workspace in wavelength.");
   declareProperty(
       Kernel::make_unique<API::WorkspaceProperty<API::MatrixWorkspace>>(Prop::DIRECT_BEAM_WS, "",
                                                              Direction::Input),
       "A direct beam workspace in wavelength.");
+  declareProperty(Prop::BEAM_CENTRE, EMPTY_DBL(), mandatoryDouble, "Reflected beam centre pixel.");
   declareProperty(Prop::FOREGROUND, std::vector<int>(), twoElementArray, "A list of three elements [low angle width, center, high angle width] defining the foreground region in pixels.");
   declareProperty(Prop::SUM_TYPE, SumTypeChoice::LAMBDA, acceptableSumTypes, "The type of summation performed for the input workspace.");
   declareProperty(Prop::POLARIZED, false, "True if the input workspace is part of polarization analysis experiment, false otherwise.");
@@ -111,18 +121,22 @@ void ReflectometryQResolution::init() {
 void ReflectometryQResolution::exec() {
   using namespace boost::math;
   API::MatrixWorkspace_sptr inWS = getProperty(Prop::INPUT_WS);
+  API::MatrixWorkspace_sptr reflectedWS = getProperty(Prop::REFLECTED_BEAM_WS);
   API::MatrixWorkspace_sptr directWS = getProperty(Prop::DIRECT_BEAM_WS);
-  auto setup = experimentSetup(*inWS);
+  auto setup = experimentSetup(*reflectedWS);
   API::MatrixWorkspace_sptr outWS;
   if (getPropertyValue(Prop::INPUT_WS) == getPropertyValue(Prop::OUTPUT_WS)) {
     outWS = inWS;
   } else {
     outWS = inWS->clone();
   }
+  const auto beamFWHM = beamRMSVariation(reflectedWS, setup);
+  const auto incidentFWHM = incidentAngularSpread(setup);
+  const auto slit1FWHM = slit1AngularSpread(setup);
   const auto &spectrumInfo = inWS->spectrumInfo();
   for (size_t wsIndex = 0; wsIndex < outWS->getNumberHistograms(); ++wsIndex) {
     auto dx = Kernel::make_cow<HistogramData::HistogramDx>(outWS->y(0).size(), 0);
-    const auto wavelengths = inWS->points(wsIndex);
+    const auto wavelengths = reflectedWS->points(setup.beamCentre);
     outWS->setSharedDx(wsIndex, dx);
     if (spectrumInfo.isMonitor(wsIndex) || spectrumInfo.isMasked(wsIndex)) {
       // Skip monitors & masked spectra, leave DX to zero.
@@ -132,17 +146,16 @@ void ReflectometryQResolution::exec() {
     for (size_t i = 0; i < wavelengths.size(); ++i) {
       const auto wavelength = wavelengths[i];
       const auto deltaLambda = wavelengthResolution(*inWS, wsIndex, wavelength);
-      const auto deltaThetaSq = angularResolutionSquared(inWS, *directWS, wsIndex, setup);
+      const auto deltaThetaSq = angularResolutionSquared(inWS, *directWS, wsIndex, setup, beamFWHM, incidentFWHM, slit1FWHM);
       resolutions[i] = wavelength * std::sqrt(pow<2>(deltaLambda) + deltaThetaSq);
     }
   }
   setProperty(Prop::OUTPUT_WS, outWS);
 }
 
-double ReflectometryQResolution::angularResolutionSquared(API::MatrixWorkspace_sptr &ws, const API::MatrixWorkspace &directWS, const size_t wsIndex, const Setup &setup) {
+double ReflectometryQResolution::angularResolutionSquared(API::MatrixWorkspace_sptr &ws, const API::MatrixWorkspace &directWS, const size_t wsIndex, const Setup &setup, const double beamFWHM, const double incidentFWHM, const double slit1FWHM) {
   using namespace boost::math;
-  const auto waviness = sampleWaviness(ws, directWS, wsIndex, setup);
-  const auto slit1FWHM = slit1AngularSpread(setup);
+  const auto waviness = sampleWaviness(ws, directWS, wsIndex, setup, beamFWHM, incidentFWHM);
   const auto slit2FWHM = slit2AngularSpread(*ws, wsIndex, setup);
   const auto &spectrumInfo = ws->spectrumInfo();
   const auto l2 = spectrumInfo.l2(wsIndex);
@@ -158,7 +171,7 @@ double ReflectometryQResolution::angularResolutionSquared(API::MatrixWorkspace_s
       if (slit1FWHM > setup.detectorResolution / l2) {
         return (pow<2>(setup.detectorResolution / l2) + pow<2>(slit2FWHM)) / pow<2>(braggAngle);
       } else {
-        const double incidentSpread = incidentAngularSpread(setup);
+        const double incidentSpread = incidentFWHM;
         return (pow<2>(incidentSpread) + pow<2>(setup.detectorResolution / l2)) / pow<2>(braggAngle);
       }
     }
@@ -166,9 +179,9 @@ double ReflectometryQResolution::angularResolutionSquared(API::MatrixWorkspace_s
     const auto foregroundWidthLimited = pow<2>(0.68) * (pow<2>(static_cast<double>(setup.foregroundEndPixel - setup.foregroundStartPixel + 1) * setup.pixelSize) + pow<2>(setup.slit2Size / l2)) / pow<2>(braggAngle);
     double angularResolution;
     if (setup.polarized) {
-      angularResolution = pow<2>(incidentAngularSpread(setup) / braggAngle);
+      angularResolution = pow<2>(incidentFWHM / braggAngle);
     } else {
-      angularResolution = (pow<2>(incidentAngularSpread(setup)) + pow<2>(waviness)) / pow<2>(braggAngle);
+      angularResolution = (pow<2>(incidentFWHM) + pow<2>(waviness)) / pow<2>(braggAngle);
     }
     return std::min(angularResolution, foregroundWidthLimited);
   }
@@ -202,19 +215,19 @@ double ReflectometryQResolution::beamRMSVariation(API::MatrixWorkspace_sptr &ws,
 }
 
 // TODO Find out what on the earth DA means (from COSMOS).
-double ReflectometryQResolution::detectorDA(const API::MatrixWorkspace &ws, const size_t wsIndex, const Setup &setup) {
+double ReflectometryQResolution::detectorDA(const API::MatrixWorkspace &ws, const size_t wsIndex, const Setup &setup, const double incidentFWHM) {
   // da_det in COSMOS
   using namespace boost::math;
   const auto slitSizeRatio = setup.slit2Size / setup.slit1Size;
   const auto &spectrumInfo = ws.spectrumInfo();
   const auto slit2Detector = setup.slit2SampleDistance + spectrumInfo.l2(wsIndex);
   const auto virtualSourceDist = slit2Detector + (slitSizeRatio * setup.slit1Slit2Distance) / (1. + slitSizeRatio);
-  const auto incidentAngularFWHM = incidentAngularSpread(setup);
-  return std::sqrt(pow<2>(incidentAngularFWHM * virtualSourceDist) + pow<2>(setup.detectorResolution));
+  return std::sqrt(pow<2>(incidentFWHM * virtualSourceDist) + pow<2>(setup.detectorResolution));
 }
 
 const ReflectometryQResolution::Setup ReflectometryQResolution::experimentSetup(const API::MatrixWorkspace &ws) {
   Setup s;
+  s.beamCentre = static_cast<size_t>(getProperty(Prop::BEAM_CENTRE));
   s.detectorResolution = getProperty(Prop::DETECTOR_RESOLUTION);
   const std::vector<int> foreground = getProperty(Prop::FOREGROUND);
   const auto lowPixel = static_cast<size_t>(foreground.front());
@@ -254,14 +267,13 @@ double ReflectometryQResolution::interslitDistance(const API::MatrixWorkspace &w
   return (slit1->getPos() - slit2->getPos()).norm();
 }
 
-double ReflectometryQResolution::sampleWaviness(API::MatrixWorkspace_sptr &ws, const API::MatrixWorkspace &directWS, const size_t wsIndex, const Setup &setup) {
+double ReflectometryQResolution::sampleWaviness(API::MatrixWorkspace_sptr &ws, const API::MatrixWorkspace &directWS, const size_t wsIndex, const Setup &setup, const double beamFWHM, const double incidentFWHM) {
   // om_fwhm in COSMOS
   using namespace boost::math;
-  const double beamRMS = beamRMSVariation(ws, setup);
-  const double daDet = detectorDA(*ws, wsIndex, setup);
+  const double daDet = detectorDA(*ws, wsIndex, setup, incidentFWHM);
   // Do only the differing slit sizes branch from COSMOS.
-  if (beamRMS - daDet >= 0) {
-    const auto a = std::sqrt(pow<2>(beamRMS) - pow<2>(daDet));
+  if (beamFWHM - daDet >= 0) {
+    const auto a = std::sqrt(pow<2>(beamFWHM) - pow<2>(daDet));
     if (a >= setup.pixelSize) {
       const auto directL2 = directWS.spectrumInfo().l2(wsIndex);
       return 0.5 * a / directL2;
