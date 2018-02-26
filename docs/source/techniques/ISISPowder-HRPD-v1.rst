@@ -116,6 +116,7 @@ The following parameters may optionally be passed:
 
 - :ref:`mode_hrpd_isis-powder-diffraction-ref`
 - :ref:`sample_empty_hrpd_isis-powder-diffraction-ref`
+- :ref:`suffix_hrpd_isis-powder-diffraction-ref`
   
 If :ref:`do_absorb_corrections_hrpd_isis-powder-diffraction-ref` is set to
 **True** the following parameter is required in addition to the above:
@@ -417,7 +418,22 @@ Example Input:
 
   # Scale sample empty to 90% of original
   hrpd_example.focus(sample_empty_scale=0.9, ...)
-  
+
+.. _suffix_hrpd_isis-powder-diffraction-ref:
+
+suffix
+^^^^^^
+*Optional*
+
+This parameter specifies a suffix to append the names of output files
+during a focus.
+
+Example Input:
+
+.. code-block:: python
+
+  hrpd_example.focus(suffix="-corr", ...)
+
 .. _user_name_hrpd_isis-powder-diffraction-ref:
 
 user_name
@@ -496,9 +512,9 @@ On HRPD this is set to the following:
 .. code-block:: python
 
   focused_bin_widths = [
-        -0.0005,  # Bank 1
-        -0.0005,  # Bank 2
-        -0.001    # Bank 3
+        -0.0003,  # Bank 1
+        -0.0007,  # Bank 2
+        -0.0012   # Bank 3
   ]
   
 focused_cropping_values

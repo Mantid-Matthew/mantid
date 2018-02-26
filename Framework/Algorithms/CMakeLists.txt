@@ -42,6 +42,7 @@ set ( SRC_FILES
 	src/ClearCache.cpp
 	src/ClearInstrumentParameters.cpp
 	src/ClearMaskFlag.cpp
+	src/ClearMaskedSpectra.cpp
 	src/CloneWorkspace.cpp
 	src/Comment.cpp
 	src/CommutativeBinaryOperation.cpp
@@ -176,6 +177,7 @@ set ( SRC_FILES
 	src/MaskBins.cpp
 	src/MaskBinsFromTable.cpp
 	src/MaskDetectorsIf.cpp
+	src/MaskInstrument.cpp
 	src/MatrixWorkspaceAccess.cpp
 	src/Max.cpp
 	src/MaxEnt.cpp
@@ -194,6 +196,7 @@ set ( SRC_FILES
 	src/ModeratorTzeroLinear.cpp
 	src/MonitorEfficiencyCorUser.cpp
 	src/MonteCarloAbsorption.cpp
+	src/MostLikelyMean.cpp
 	src/MultipleScatteringCylinderAbsorption.cpp
 	src/Multiply.cpp
 	src/MultiplyRange.cpp
@@ -217,6 +220,7 @@ set ( SRC_FILES
 	src/PointByPointVCorrection.cpp
 	src/PoissonErrors.cpp
 	src/PolarizationCorrection.cpp
+	src/PolarizationEfficiencyCor.cpp
 	src/PolynomialCorrection.cpp
 	src/Power.cpp
 	src/PowerLawCorrection.cpp
@@ -300,6 +304,7 @@ set ( SRC_FILES
 	src/StripVanadiumPeaks2.cpp
 	src/SumEventsByLogValue.cpp
 	src/SumNeighbours.cpp
+	src/SumOverlappingTubes.cpp
 	src/SumRowColumn.cpp
 	src/SumSpectra.cpp
 	src/TOFSANSResolution.cpp
@@ -370,6 +375,7 @@ set ( INC_FILES
 	inc/MantidAlgorithms/ClearCache.h
 	inc/MantidAlgorithms/ClearInstrumentParameters.h
 	inc/MantidAlgorithms/ClearMaskFlag.h
+	inc/MantidAlgorithms/ClearMaskedSpectra.h
 	inc/MantidAlgorithms/CloneWorkspace.h
 	inc/MantidAlgorithms/Comment.h
 	inc/MantidAlgorithms/CommutativeBinaryOperation.h
@@ -505,6 +511,7 @@ set ( INC_FILES
 	inc/MantidAlgorithms/MaskBins.h
 	inc/MantidAlgorithms/MaskBinsFromTable.h
 	inc/MantidAlgorithms/MaskDetectorsIf.h
+	inc/MantidAlgorithms/MaskInstrument.h
 	inc/MantidAlgorithms/MatrixWorkspaceAccess.h
 	inc/MantidAlgorithms/Max.h
 	inc/MantidAlgorithms/MaxEnt.h
@@ -526,6 +533,7 @@ set ( INC_FILES
 	inc/MantidAlgorithms/ModeratorTzeroLinear.h
 	inc/MantidAlgorithms/MonitorEfficiencyCorUser.h
 	inc/MantidAlgorithms/MonteCarloAbsorption.h
+	inc/MantidAlgorithms/MostLikelyMean.h
 	inc/MantidAlgorithms/MultipleScatteringCylinderAbsorption.h
 	inc/MantidAlgorithms/Multiply.h
 	inc/MantidAlgorithms/MultiplyRange.h
@@ -549,6 +557,7 @@ set ( INC_FILES
 	inc/MantidAlgorithms/PointByPointVCorrection.h
 	inc/MantidAlgorithms/PoissonErrors.h
 	inc/MantidAlgorithms/PolarizationCorrection.h
+	inc/MantidAlgorithms/PolarizationEfficiencyCor.h
 	inc/MantidAlgorithms/PolynomialCorrection.h
 	inc/MantidAlgorithms/Power.h
 	inc/MantidAlgorithms/PowerLawCorrection.h
@@ -633,6 +642,7 @@ set ( INC_FILES
 	inc/MantidAlgorithms/StripVanadiumPeaks2.h
 	inc/MantidAlgorithms/SumEventsByLogValue.h
 	inc/MantidAlgorithms/SumNeighbours.h
+	inc/MantidAlgorithms/SumOverlappingTubes.h
 	inc/MantidAlgorithms/SumRowColumn.h
 	inc/MantidAlgorithms/SumSpectra.h
 	inc/MantidAlgorithms/TOFSANSResolution.h
@@ -714,6 +724,7 @@ set ( TEST_FILES
 	ClearCacheTest.h
 	ClearInstrumentParametersTest.h
 	ClearMaskFlagTest.h
+	ClearMaskedSpectraTest.h
 	CloneWorkspaceTest.h
 	CommentTest.h
 	CommutativeBinaryOperationTest.h
@@ -845,6 +856,7 @@ set ( TEST_FILES
 	MaskBinsFromTableTest.h
 	MaskBinsTest.h
 	MaskDetectorsIfTest.h
+	MaskInstrumentTest.h
 	MaxEnt/MaxentCalculatorTest.h
 	MaxEnt/MaxentEntropyNegativeValuesTest.h
 	MaxEnt/MaxentEntropyPositiveValuesTest.h
@@ -862,6 +874,7 @@ set ( TEST_FILES
 	ModeratorTzeroTest.h
 	MonitorEfficiencyCorUserTest.h
 	MonteCarloAbsorptionTest.h
+	MostLikelyMeanTest.h
 	MultipleScatteringCylinderAbsorptionTest.h
 	MultiplyRangeTest.h
 	MultiplyTest.h
@@ -883,6 +896,7 @@ set ( TEST_FILES
 	PointByPointVCorrectionTest.h
 	PoissonErrorsTest.h
 	PolarizationCorrectionTest.h
+	PolarizationEfficiencyCorTest.h
 	PolynomialCorrectionTest.h
 	PowerLawCorrectionTest.h
 	PowerTest.h
@@ -932,6 +946,7 @@ set ( TEST_FILES
 	SmoothDataTest.h
 	SmoothNeighboursTest.h
 	SofQWCentreTest.h
+	SofQWCutTest.h
 	SofQWNormalisedPolygonTest.h
 	SofQWPolygonTest.h
 	SofQWTest.h
@@ -951,6 +966,7 @@ set ( TEST_FILES
 	StripVanadiumPeaksTest.h
 	SumEventsByLogValueTest.h
 	SumNeighboursTest.h
+	SumOverlappingTubesTest.h
 	SumRowColumnTest.h
 	SumSpectraTest.h
 	TOFSANSResolutionByPixelCalculatorTest.h
@@ -992,7 +1008,9 @@ set_target_properties ( Algorithms PROPERTIES OUTPUT_NAME MantidAlgorithms
 )
 
 if (OSX_VERSION VERSION_GREATER 10.8)
-  set_target_properties ( Algorithms PROPERTIES INSTALL_RPATH "@loader_path/../Contents/MacOS")
+  set_target_properties(Algorithms PROPERTIES INSTALL_RPATH "@loader_path/../Contents/MacOS")
+elseif ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+  set_target_properties(Algorithms PROPERTIES INSTALL_RPATH "\$ORIGIN/../${LIB_DIR}")
 endif ()
 
 # Add to the 'Framework' group in VS

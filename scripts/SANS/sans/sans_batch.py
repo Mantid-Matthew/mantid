@@ -11,7 +11,7 @@ class SANSBatchReduction(object):
     def __init__(self):
         super(SANSBatchReduction, self).__init__()
 
-    def __call__(self, states, use_optimizations=True, output_mode=OutputMode.PublishToADS):
+    def __call__(self, states, use_optimizations=True, output_mode=OutputMode.PublishToADS, plot_results = False, output_graph=''):
         """
         This is the start of any reduction.
 
@@ -22,17 +22,17 @@ class SANSBatchReduction(object):
                             2. SaveToFile
                             3. Both
         """
-        self.validate_inputs(states, use_optimizations, output_mode)
+        self.validate_inputs(states, use_optimizations, output_mode, plot_results, output_graph)
 
-        self._execute(states, use_optimizations, output_mode)
+        self._execute(states, use_optimizations, output_mode, plot_results, output_graph)
 
     @staticmethod
-    def _execute(states, use_optimizations, output_mode):
+    def _execute(states, use_optimizations, output_mode, plot_results, output_graph):
         # Iterate over each state, load the data and perform the reduction
         for state in states:
-            single_reduction_for_batch(state, use_optimizations, output_mode)
+            single_reduction_for_batch(state, use_optimizations, output_mode, plot_results, output_graph)
 
-    def validate_inputs(self, states, use_optimizations, output_mode):
+    def validate_inputs(self, states, use_optimizations, output_mode, plot_results, output_graph):
         # We are strict about the types here.
         # 1. states has to be a list of sans state objects
         # 2. use_optimizations has to be bool
@@ -48,6 +48,14 @@ class SANSBatchReduction(object):
         if not isinstance(use_optimizations, bool):
             raise RuntimeError("The optimization has to be a boolean. The provided type is"
                                " {0}".format(type(use_optimizations)))
+
+        if not isinstance(plot_results, bool):
+            raise RuntimeError("The plot_result has to be a boolean. The provided type is"
+                               " {0}".format(type(plot_results)))
+
+        if plot_results and not output_graph:
+            raise RuntimeError("The output_graph must be set if plot_results is true. The provided value is"
+                               " {0}".format(output_graph))
 
         if output_mode is not OutputMode.PublishToADS and output_mode is not OutputMode.SaveToFile and\
                         output_mode is not OutputMode.Both:  # noqa
@@ -74,17 +82,17 @@ class SANSCentreFinder(object):
     def __init__(self):
         super(SANSCentreFinder, self).__init__()
 
-    def __call__(self, state, r_min = 0.06, r_max = 0.026, max_iter = 20, x_start = 0.0, y_start = 0.0,
-                 tolerance = 1.251e-4, find_direction = FindDirectionEnum.All, reduction_method = True):
+    def __call__(self, state, r_min = 60, r_max = 280, max_iter = 20, x_start = 0.0, y_start = 0.0,
+                 tolerance = 1.251e-4, find_direction = FindDirectionEnum.All, reduction_method = True, verbose=False):
         """
         This is the start of the beam centre finder algorithm.
 
         :param state: This is a sans state, to find the beam centre for.
-        :param r_min: This is the inner radius of the quartile mask.
-        :param r_max: This is the outer radius of the quartile mask.
+        :param r_min: This is the inner radius of the quartile mask in mm.
+        :param r_max: This is the outer radius of the quartile mask in mm.
         :param max_iter: This is the maximum number of iterations.
-        :param x_start: This is the starting position of the search on the x axis.
-        :param y_start: This is the starting position of the search on the y axis.
+        :param x_start: This is the starting position of the search on the x axis in metres or degrees.
+        :param y_start: This is the starting position of the search on the y axis in metres.
         :param tolerance: This is the tolerance for the search.
         :param fine_direction: This is an enumerator controlling which axis or both should be searched.
         :param reduction_method: This is a bool controlling which centre finder algorithm to use. By default the
@@ -93,14 +101,15 @@ class SANSCentreFinder(object):
         self.validate_inputs(state, r_min, r_max, max_iter, x_start, y_start, tolerance)
 
         if reduction_method:
-            return self._execute_reduction_method(state, r_min, r_max, max_iter, x_start, y_start, tolerance, find_direction)
+            return self._execute_reduction_method(state, r_min, r_max, max_iter, x_start, y_start, tolerance,
+                                                  find_direction, verbose)
         else:
             return self._execute_mass_method(state, r_min, max_iter, x_start, y_start, tolerance)
 
     @staticmethod
-    def _execute_reduction_method(state, r_min, r_max, max_iter, xstart, ystart, tolerance, find_direction):
+    def _execute_reduction_method(state, r_min, r_max, max_iter, xstart, ystart, tolerance, find_direction, verbose):
         # Perform the beam centre finder algorithm
-        return centre_finder_new(state, r_min, r_max, max_iter, xstart, ystart, tolerance, find_direction)
+        return centre_finder_new(state, r_min, r_max, max_iter, xstart, ystart, tolerance, find_direction, verbose)
 
     @staticmethod
     def _execute_mass_method(state, r_min, max_iter, xstart, ystart, tolerance):

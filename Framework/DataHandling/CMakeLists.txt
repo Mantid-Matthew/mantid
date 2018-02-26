@@ -55,6 +55,7 @@ set ( SRC_FILES
 	src/LoadIDFFromNexus.cpp
 	src/LoadILLDiffraction.cpp
 	src/LoadILLIndirect2.cpp
+	src/LoadILLPolarizationFactors.cpp
 	src/LoadILLReflectometry.cpp
 	src/LoadILLSANS.cpp
 	src/LoadILLTOF2.cpp
@@ -112,6 +113,7 @@ set ( SRC_FILES
 	src/LoadVulcanCalFile.cpp
 	src/MaskDetectors.cpp
 	src/MaskDetectorsInShape.cpp
+	src/MaskSpectra.cpp
 	src/MergeLogs.cpp
 	src/ModifyDetectorDotDatFile.cpp
 	src/MoveInstrumentComponent.cpp
@@ -233,6 +235,7 @@ set ( INC_FILES
 	inc/MantidDataHandling/LoadIDFFromNexus.h
 	inc/MantidDataHandling/LoadILLDiffraction.h
 	inc/MantidDataHandling/LoadILLIndirect2.h
+	inc/MantidDataHandling/LoadILLPolarizationFactors.h
 	inc/MantidDataHandling/LoadILLReflectometry.h
 	inc/MantidDataHandling/LoadILLSANS.h
 	inc/MantidDataHandling/LoadILLTOF2.h
@@ -285,6 +288,7 @@ set ( INC_FILES
 	inc/MantidDataHandling/LoadVulcanCalFile.h
 	inc/MantidDataHandling/MaskDetectors.h
 	inc/MantidDataHandling/MaskDetectorsInShape.h
+	inc/MantidDataHandling/MaskSpectra.h
 	inc/MantidDataHandling/MergeLogs.h
 	inc/MantidDataHandling/ModifyDetectorDotDatFile.h
 	inc/MantidDataHandling/MoveInstrumentComponent.h
@@ -404,6 +408,7 @@ set ( TEST_FILES
 	LoadIDFFromNexusTest.h
 	LoadILLDiffractionTest.h
 	LoadILLIndirect2Test.h
+	LoadILLPolarizationFactorsTest.h
 	LoadILLReflectometryTest.h
 	LoadILLSANSTest.h
 	LoadILLTOF2Test.h
@@ -456,6 +461,7 @@ set ( TEST_FILES
 	LoadVulcanCalFileTest.h
 	MaskDetectorsInShapeTest.h
 	MaskDetectorsTest.h
+	MaskSpectraTest.h
 	MergeLogsTest.h
 	ModifyDetectorDotDatFileTest.h
 	MoveInstrumentComponentTest.h
@@ -535,7 +541,9 @@ set_target_properties ( DataHandling PROPERTIES OUTPUT_NAME MantidDataHandling
 )
 
 if (OSX_VERSION VERSION_GREATER 10.8)
-  set_target_properties ( DataHandling PROPERTIES INSTALL_RPATH "@loader_path/../Contents/MacOS")
+  set_target_properties(DataHandling PROPERTIES INSTALL_RPATH "@loader_path/../Contents/MacOS")
+elseif ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+  set_target_properties(DataHandling PROPERTIES INSTALL_RPATH "\$ORIGIN/../${LIB_DIR}")
 endif ()
 
 # Add to the 'Framework' group in VS

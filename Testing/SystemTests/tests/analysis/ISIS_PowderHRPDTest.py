@@ -1,6 +1,7 @@
 from __future__ import (absolute_import, division, print_function)
 
 import os
+import platform
 import shutil
 import stresstesting
 
@@ -53,8 +54,8 @@ class CreateVanadiumTest(stresstesting.MantidStressTest):
         self.calibration_results = run_vanadium_calibration()
 
     def validate(self):
-        return self.calibration_results.getName(),\
-               "ISIS_Powder-HRPD-VanSplined_66031_hrpd_new_072_01_corr.cal.nxs"
+        self.tolerance = 0.05  # Required for difference in spline data between operating systems
+        return self.calibration_results.getName(), "ISIS_Powder-HRPD-VanSplined_66031_hrpd_new_072_01_corr.cal.nxs"
 
     def cleanup(self):
         try:
@@ -79,6 +80,10 @@ class FocusTest(stresstesting.MantidStressTest):
         self.focus_results = run_focus()
 
     def validate(self):
+        if platform.system() == "Darwin":  # OSX requires higher tolerance for splines
+            self.tolerance = 0.4
+        else:
+            self.tolerance = 0.05
         return self.focus_results.getName(), "HRPD66063_focused.nxs"
 
     def cleanup(self):

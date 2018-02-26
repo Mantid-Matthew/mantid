@@ -18,8 +18,6 @@ using namespace Mantid::DataHandling;
 // Register the algorithm into the AlgorithmFactory
 DECLARE_ALGORITHM(SaveFocusedXYE)
 
-SaveFocusedXYE::SaveFocusedXYE() : API::Algorithm(), m_headerType(XYE) {}
-
 /**
  * Initialise the algorithm
  */
@@ -205,7 +203,7 @@ void SaveFocusedXYE::setOtherProperties(IAlgorithm *alg,
                                         const std::string &propertyName,
                                         const std::string &propertyValue,
                                         int perioidNum) {
-  if (!propertyName.compare("Append")) {
+  if (propertyName == "Append") {
     if (perioidNum != 1) {
       alg->setPropertyValue(propertyName, "1");
     } else
