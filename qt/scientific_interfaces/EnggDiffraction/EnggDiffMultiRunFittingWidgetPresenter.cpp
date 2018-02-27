@@ -118,9 +118,6 @@ EnggDiffMultiRunFittingWidgetPresenter::getSelectedRunLabel() const {
 void EnggDiffMultiRunFittingWidgetPresenter::notify(
     IEnggDiffMultiRunFittingWidgetPresenter::Notification notif) {
   switch (notif) {
-  case Notification::PlotPeaksStateChanged:
-    processPlotPeaksStateChanged();
-    break;
 
   case Notification::PlotToSeparateWindow:
     processPlotToSeparateWindow();
@@ -130,16 +127,9 @@ void EnggDiffMultiRunFittingWidgetPresenter::notify(
     processRemoveRun();
     break;
 
-  case Notification::SelectRun:
-    processSelectRun();
+  case Notification::UpdatePlot:
+    processUpdatePlot();
     break;
-  }
-}
-
-void EnggDiffMultiRunFittingWidgetPresenter::processPlotPeaksStateChanged() {
-  const auto runLabel = getSelectedRunLabel();
-  if (runLabel) {
-    updatePlot(*runLabel);
   }
 }
 
@@ -185,7 +175,7 @@ void EnggDiffMultiRunFittingWidgetPresenter::processRemoveRun() {
   }
 }
 
-void EnggDiffMultiRunFittingWidgetPresenter::processSelectRun() {
+void EnggDiffMultiRunFittingWidgetPresenter::processUpdatePlot() {
   const auto runLabel = getSelectedRunLabel();
   if (runLabel) {
     updatePlot(*runLabel);

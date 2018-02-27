@@ -115,7 +115,7 @@ public:
     assertMocksUsedCorrectly();
   }
 
-  void test_selectValidRunWithoutFittedPeaks() {
+  void test_updatePlotValidRunWithoutFittedPeaks() {
     auto presenter = setUpPresenter();
 
     const RunLabel runLabel(123, 1);
@@ -136,11 +136,11 @@ public:
     EXPECT_CALL(*m_mockView, plotFittedPeaks(testing::_)).Times(0);
 
     presenter->notify(
-        IEnggDiffMultiRunFittingWidgetPresenter::Notification::SelectRun);
+        IEnggDiffMultiRunFittingWidgetPresenter::Notification::UpdatePlot);
     assertMocksUsedCorrectly();
   }
 
-  void test_selectRunInvalid() {
+  void test_updatePlotInvalid() {
     auto presenter = setUpPresenter();
 
     const RunLabel runLabel(123, 1);
@@ -154,11 +154,11 @@ public:
     EXPECT_CALL(*m_mockView, resetCanvas()).Times(0);
 
     presenter->notify(
-        IEnggDiffMultiRunFittingWidgetPresenter::Notification::SelectRun);
+        IEnggDiffMultiRunFittingWidgetPresenter::Notification::UpdatePlot);
     assertMocksUsedCorrectly();
   }
 
-  void test_selectValidRunWithFittedPeaks() {
+  void test_upatePlotWithFittedPeaks() {
     auto presenter = setUpPresenter();
 
     const RunLabel runLabel(123, 1);
@@ -178,57 +178,18 @@ public:
     EXPECT_CALL(*m_mockView, plotFittedPeaks(testing::_)).Times(1);
 
     presenter->notify(
-        IEnggDiffMultiRunFittingWidgetPresenter::Notification::SelectRun);
+        IEnggDiffMultiRunFittingWidgetPresenter::Notification::UpdatePlot);
     assertMocksUsedCorrectly();
   }
 
-  void test_selectRunDoesNothingWhenNoRunSelected() {
+  void test_updatePlotDoesNothingWhenNoRunSelected() {
     auto presenter = setUpPresenter();
 
     EXPECT_CALL(*m_mockView, getSelectedRunLabel())
         .Times(1)
         .WillOnce(Return(boost::none));
     presenter->notify(
-        IEnggDiffMultiRunFittingWidgetPresenter::Notification::SelectRun);
-    assertMocksUsedCorrectly();
-  }
-
-  void test_plotPeaksStateChangedUpdatesPlot() {
-    auto presenter = setUpPresenter();
-
-    const RunLabel runLabel(123, 1);
-    EXPECT_CALL(*m_mockView, getSelectedRunLabel())
-        .Times(1)
-        .WillOnce(Return(runLabel));
-
-    const boost::optional<Mantid::API::MatrixWorkspace_sptr> sampleWorkspace(
-        WorkspaceCreationHelper::create2DWorkspaceBinned(1, 100));
-    EXPECT_CALL(*m_mockModel, getFocusedRun(runLabel))
-        .Times(1)
-        .WillOnce(Return(sampleWorkspace));
-
-    EXPECT_CALL(*m_mockView, resetCanvas()).Times(1);
-    EXPECT_CALL(*m_mockView, plotFocusedRun(testing::_)).Times(1);
-
-    EXPECT_CALL(*m_mockModel, hasFittedPeaksForRun(runLabel))
-        .Times(1)
-        .WillOnce(Return(false));
-
-    presenter->notify(IEnggDiffMultiRunFittingWidgetPresenter::Notification::
-                          PlotPeaksStateChanged);
-    assertMocksUsedCorrectly();
-  }
-
-  void test_plotPeaksStateChangedDoesNotCrashWhenNoRunSelected() {
-    auto presenter = setUpPresenter();
-
-    EXPECT_CALL(*m_mockView, getSelectedRunLabel())
-        .Times(1)
-        .WillOnce(Return(boost::none));
-    EXPECT_CALL(*m_mockModel, getFocusedRun(testing::_)).Times(0);
-
-    presenter->notify(IEnggDiffMultiRunFittingWidgetPresenter::Notification::
-                          PlotPeaksStateChanged);
+        IEnggDiffMultiRunFittingWidgetPresenter::Notification::UpdatePlot);
     assertMocksUsedCorrectly();
   }
 

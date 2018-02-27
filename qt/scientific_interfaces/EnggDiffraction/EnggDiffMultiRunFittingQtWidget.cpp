@@ -77,8 +77,8 @@ bool EnggDiffMultiRunFittingQtWidget::hasSelectedRunLabel() const {
 }
 
 void EnggDiffMultiRunFittingQtWidget::plotFittedPeaksStateChanged() {
-  m_presenter->notify(IEnggDiffMultiRunFittingWidgetPresenter::Notification::
-                          PlotPeaksStateChanged);
+  m_presenter->notify(
+      IEnggDiffMultiRunFittingWidgetPresenter::Notification::UpdatePlot);
 }
 
 void EnggDiffMultiRunFittingQtWidget::plotFittedPeaks(
@@ -159,7 +159,7 @@ void EnggDiffMultiRunFittingQtWidget::processRemoveRun() {
 void EnggDiffMultiRunFittingQtWidget::processSelectRun() {
   emit runSelected();
   m_presenter->notify(
-      IEnggDiffMultiRunFittingWidgetPresenter::Notification::SelectRun);
+      IEnggDiffMultiRunFittingWidgetPresenter::Notification::UpdatePlot);
 }
 
 void EnggDiffMultiRunFittingQtWidget::resetCanvas() {

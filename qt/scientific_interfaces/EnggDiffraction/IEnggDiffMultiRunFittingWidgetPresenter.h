@@ -18,10 +18,9 @@ public:
   // User actions, triggered by the (passive) view,
   // which need handling in implementation
   enum class Notification {
-    PlotPeaksStateChanged, ///< Change whether fitted peaks are plotted
-    PlotToSeparateWindow,  ///< Plot currently selected run to a separate window
-    RemoveRun,             ///< Remove a run from the list
-    SelectRun,             ///< The user has selected a new run from the list
+    PlotToSeparateWindow, ///< Plot currently selected run to a separate window
+    RemoveRun,            ///< Remove a run from the list
+    UpdatePlot,           ///< Update the plot
   };
 
   /**

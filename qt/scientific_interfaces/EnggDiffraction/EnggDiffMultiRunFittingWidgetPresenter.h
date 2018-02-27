@@ -39,10 +39,9 @@ public:
   notify(IEnggDiffMultiRunFittingWidgetPresenter::Notification notif) override;
 
 private:
-  void processPlotPeaksStateChanged();
   void processPlotToSeparateWindow();
   void processRemoveRun();
-  void processSelectRun();
+  void processUpdatePlot();
 
   /// Display fitted peaks and any other fit information for a certain run
   void displayFitResults(const RunLabel &runLabel);
