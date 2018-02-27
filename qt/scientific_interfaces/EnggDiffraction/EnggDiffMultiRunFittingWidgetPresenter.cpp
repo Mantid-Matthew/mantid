@@ -69,7 +69,6 @@ EnggDiffMultiRunFittingWidgetPresenter::EnggDiffMultiRunFittingWidgetPresenter(
 void EnggDiffMultiRunFittingWidgetPresenter::addFittedPeaks(
     const RunLabel &runLabel, const Mantid::API::MatrixWorkspace_sptr ws) {
   m_model->addFittedPeaks(runLabel, ws);
-  updatePlot(runLabel);
 }
 
 void EnggDiffMultiRunFittingWidgetPresenter::addFocusedRun(

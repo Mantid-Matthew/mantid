@@ -49,6 +49,10 @@ protected:
    */
   void doRefinement(const GSASIIRefineFitPeaksParameters &params);
 
+private slots:
+  void processRefinementFailed(const std::string &failureMessage);
+  void processRefinementSucceeded();
+
 private:
   void processDoRefinement();
   void processLoadRun();
@@ -73,8 +77,6 @@ private:
   /// locking
   virtual void
   startAsyncFittingWorker(const GSASIIRefineFitPeaksParameters &params);
-
-  bool m_fittingFinishedOK;
 
   std::unique_ptr<IEnggDiffGSASFittingModel> m_model;
 

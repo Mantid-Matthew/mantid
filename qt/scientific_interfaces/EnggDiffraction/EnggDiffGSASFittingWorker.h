@@ -8,7 +8,7 @@
 
 /**
 Worker for long-running tasks (ie GSASIIRefineFitPeaks) in the GSAS tab of the
-Engineering Diffraction GUI. Emits finished() signal when refinement is complete
+Engineering Diffraction GUI
 */
 namespace MantidQt {
 namespace CustomInterfaces {
@@ -26,7 +26,8 @@ public slots:
   void doRefinement();
 
 signals:
-  void finished();
+  void refinementFailed(const std::string &failureMessage);
+  void refinementSucceeded();
 
 private:
   EnggDiffGSASFittingPresenter *m_presenter;

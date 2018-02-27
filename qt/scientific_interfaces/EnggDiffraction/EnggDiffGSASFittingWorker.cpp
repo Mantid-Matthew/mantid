@@ -10,8 +10,13 @@ EnggDiffGSASFittingWorker::EnggDiffGSASFittingWorker(
     : m_presenter(pres), m_refinementParams(params) {}
 
 void EnggDiffGSASFittingWorker::doRefinement() {
-  m_presenter->doRefinement(m_refinementParams);
-  emit finished();
+  try {
+    m_presenter->doRefinement(m_refinementParams);
+  } catch (const std::exception &ex) {
+    emit refinementFailed(ex.what());
+    return;
+  }
+  emit refinementSucceeded();
 }
 
 } // namespace CustomInterfaces

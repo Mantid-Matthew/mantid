@@ -42,20 +42,6 @@ public:
     const RunLabel runLabel(123, 1);
     EXPECT_CALL(*m_mockModel, addFittedPeaks(runLabel, ws)).Times(1);
 
-    EXPECT_CALL(*m_mockModel, getFocusedRun(runLabel))
-        .Times(1)
-        .WillOnce(Return(ws));
-    EXPECT_CALL(*m_mockView, reportPlotInvalidFocusedRun(testing::_)).Times(0);
-    EXPECT_CALL(*m_mockView, resetCanvas()).Times(1);
-    EXPECT_CALL(*m_mockView, plotFocusedRun(testing::_)).Times(1);
-    EXPECT_CALL(*m_mockModel, hasFittedPeaksForRun(runLabel))
-        .Times(1)
-        .WillOnce(Return(true));
-    EXPECT_CALL(*m_mockView, showFitResultsSelected())
-        .Times(1)
-        .WillOnce(Return(false));
-    EXPECT_CALL(*m_mockModel, getFittedPeaks(testing::_)).Times(0);
-
     presenter->addFittedPeaks(runLabel, ws);
     assertMocksUsedCorrectly();
   }

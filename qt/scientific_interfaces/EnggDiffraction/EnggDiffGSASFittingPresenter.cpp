@@ -9,9 +9,8 @@ EnggDiffGSASFittingPresenter::EnggDiffGSASFittingPresenter(
     std::unique_ptr<IEnggDiffGSASFittingModel> model,
     IEnggDiffGSASFittingView *view,
     boost::shared_ptr<IEnggDiffMultiRunFittingWidgetPresenter> multiRunWidget)
-    : m_fittingFinishedOK(false), m_model(std::move(model)),
-      m_multiRunWidget(multiRunWidget), m_view(view), m_viewHasClosed(false),
-      m_workerThread(nullptr) {}
+    : m_model(std::move(model)), m_multiRunWidget(multiRunWidget), m_view(view),
+      m_viewHasClosed(false), m_workerThread(nullptr) {}
 
 EnggDiffGSASFittingPresenter::~EnggDiffGSASFittingPresenter() {}
 
@@ -93,18 +92,19 @@ void EnggDiffGSASFittingPresenter::displayFitResults(const RunLabel &runLabel) {
 
 void EnggDiffGSASFittingPresenter::doRefinement(
     const GSASIIRefineFitPeaksParameters &params) {
-  m_fittingFinishedOK = false;
+  const auto fittedPeaks = m_model->doRefinement(params);
+  m_multiRunWidget->addFittedPeaks(params.runLabel, fittedPeaks);
+  displayFitResults(params.runLabel);
+}
 
-  try {
-    const auto fittedPeaks = m_model->doRefinement(params);
-    m_multiRunWidget->addFittedPeaks(params.runLabel, fittedPeaks);
-    displayFitResults(params.runLabel);
-  } catch (const std::exception &ex) {
-    m_view->showStatus("An error occurred in refinement");
-    m_view->userError("Refinement failed", ex.what());
-    return;
-  }
-  m_fittingFinishedOK = true;
+void EnggDiffGSASFittingPresenter::processRefinementFailed(
+    const std::string &errorMessage) {
+  m_view->userWarning("Refinement failed", errorMessage);
+}
+
+void EnggDiffGSASFittingPresenter::processRefinementSucceeded() {
+  m_multiRunWidget->notify(
+      IEnggDiffMultiRunFittingWidgetPresenter::Notification::UpdatePlot);
 }
 
 void EnggDiffGSASFittingPresenter::processDoRefinement() {
@@ -171,7 +171,10 @@ void EnggDiffGSASFittingPresenter::startAsyncFittingWorker(
   worker->moveToThread(m_workerThread);
 
   connect(m_workerThread, SIGNAL(started()), worker, SLOT(doRefinement()));
-  //  connect(worker, SIGNAL(finished()), this, SLOT(fittingFinished()));
+  connect(worker, SIGNAL(refinementFailed(const std::string &)), this,
+          SLOT(processRefinementFailed(const std::string &)));
+  connect(worker, SIGNAL(refinementSucceeded()), this,
+          SLOT(processRefinementSucceeded()));
   connect(m_workerThread, SIGNAL(finished()), m_workerThread,
           SLOT(deleteLater()));
   connect(m_workerThread, SIGNAL(finished()), worker, SLOT(deleteLater()));

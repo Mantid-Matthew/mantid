@@ -128,11 +128,14 @@ public:
         .Times(1)
         .WillOnce(Return(params.refineGamma));
 
+    const Mantid::API::MatrixWorkspace_sptr dummyFittedPeaks =
+        WorkspaceCreationHelper::create2DWorkspaceBinned(1, 100);
     EXPECT_CALL(*m_mockModelPtr, doRefinement(params))
         .Times(1)
-        .WillOnce(Throw(std::runtime_error("Failure reason")));
-    EXPECT_CALL(*m_mockViewPtr,
-                userError("Refinement failed", "Failure reason"));
+        .WillOnce(Return(dummyFittedPeaks));
+    EXPECT_CALL(*m_mockMultiRunWidgetPtr,
+                addFittedPeaks(params.runLabel, dummyFittedPeaks))
+        .Times(1);
 
     presenter->notify(IEnggDiffGSASFittingPresenter::DoRefinement);
     assertMocksUsedCorrectly();
@@ -188,11 +191,14 @@ public:
         .Times(1)
         .WillOnce(Return(params.refineGamma));
 
+    const Mantid::API::MatrixWorkspace_sptr dummyFittedPeaks =
+        WorkspaceCreationHelper::create2DWorkspaceBinned(1, 100);
     EXPECT_CALL(*m_mockModelPtr, doRefinement(params))
         .Times(1)
-        .WillOnce(Throw(std::runtime_error("Failure reason")));
-    EXPECT_CALL(*m_mockViewPtr,
-                userError("Refinement failed", "Failure reason"));
+        .WillOnce(Return(dummyFittedPeaks));
+    EXPECT_CALL(*m_mockMultiRunWidgetPtr,
+                addFittedPeaks(params.runLabel, dummyFittedPeaks))
+        .Times(1);
 
     presenter->notify(IEnggDiffGSASFittingPresenter::DoRefinement);
     assertMocksUsedCorrectly();
