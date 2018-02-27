@@ -58,6 +58,7 @@ public:
   void renderTriangulated(detail::GeometryTriangulator &triangulator) const;
   /// Renders a sphere, cuboid, hexahedron, cone or cylinder
   void renderShape(const ShapeInfo &shapeInfo) const;
+
 private:
   /// General method for rendering geometry
   template <typename... Args> void render(Args &&... args) const &;
