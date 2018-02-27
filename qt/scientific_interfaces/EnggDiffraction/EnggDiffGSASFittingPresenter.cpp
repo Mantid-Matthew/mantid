@@ -10,7 +10,8 @@ EnggDiffGSASFittingPresenter::EnggDiffGSASFittingPresenter(
     IEnggDiffGSASFittingView *view,
     boost::shared_ptr<IEnggDiffMultiRunFittingWidgetPresenter> multiRunWidget)
     : m_fittingFinishedOK(false), m_model(std::move(model)),
-      m_multiRunWidget(multiRunWidget), m_view(view), m_viewHasClosed(false) {}
+      m_multiRunWidget(multiRunWidget), m_view(view), m_viewHasClosed(false),
+      m_workerThread(nullptr) {}
 
 EnggDiffGSASFittingPresenter::~EnggDiffGSASFittingPresenter() {}
 
@@ -164,8 +165,17 @@ void EnggDiffGSASFittingPresenter::processShutDown() { m_viewHasClosed = true; }
 
 void EnggDiffGSASFittingPresenter::startAsyncFittingWorker(
     const GSASIIRefineFitPeaksParameters &params) {
+  delete m_workerThread;
+  m_workerThread = new QThread(this);
   auto *worker = new EnggDiffGSASFittingWorker(this, params);
-  worker->doRefinement();
+  worker->moveToThread(m_workerThread);
+
+  connect(m_workerThread, SIGNAL(started()), worker, SLOT(doRefinement()));
+  //  connect(worker, SIGNAL(finished()), this, SLOT(fittingFinished()));
+  connect(m_workerThread, SIGNAL(finished()), m_workerThread,
+          SLOT(deleteLater()));
+  connect(m_workerThread, SIGNAL(finished()), worker, SLOT(deleteLater()));
+  m_workerThread->start();
 }
 
 } // MantidQt

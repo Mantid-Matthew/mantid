@@ -16,6 +16,23 @@ using namespace MantidQt::CustomInterfaces;
 using testing::Return;
 using testing::Throw;
 
+// Fake presenter - use this for tests that will run the fitting thread
+class EnggDiffGSASFittingPresenterNoThread
+    : public EnggDiffGSASFittingPresenter {
+public:
+  EnggDiffGSASFittingPresenterNoThread(
+      std::unique_ptr<IEnggDiffGSASFittingModel> model,
+      IEnggDiffGSASFittingView *view,
+      boost::shared_ptr<IEnggDiffMultiRunFittingWidgetPresenter> multiRunWidget)
+      : EnggDiffGSASFittingPresenter(std::move(model), view, multiRunWidget) {}
+
+private:
+  void startAsyncFittingWorker(
+      const GSASIIRefineFitPeaksParameters &params) override {
+    doRefinement(params);
+  }
+};
+
 class EnggDiffGSASFittingPresenterTest : public CxxTest::TestSuite {
 
 public:
@@ -62,7 +79,7 @@ public:
   }
 
   void test_doRietveldRefinement() {
-    auto presenter = setUpPresenter();
+    auto presenter = setUpPresenterNoThread();
 
     const GSASIIRefineFitPeaksParameters params(
         WorkspaceCreationHelper::create2DWorkspaceBinned(1, 100),
@@ -122,7 +139,7 @@ public:
   }
 
   void test_doPawleyRefinement() {
-    auto presenter = setUpPresenter();
+    auto presenter = setUpPresenterNoThread();
 
     const GSASIIRefineFitPeaksParameters params(
         WorkspaceCreationHelper::create2DWorkspaceBinned(1, 100),
@@ -270,6 +287,25 @@ private:
 
     auto pres_uptr = Mantid::Kernel::make_unique<EnggDiffGSASFittingPresenter>(
         std::move(mockModel), m_mockViewPtr, mockMultiRunWidgetPresenter_sptr);
+    return pres_uptr;
+  }
+
+  std::unique_ptr<EnggDiffGSASFittingPresenterNoThread>
+  setUpPresenterNoThread() {
+    auto mockModel = Mantid::Kernel::make_unique<
+        testing::NiceMock<MockEnggDiffGSASFittingModel>>();
+    m_mockModelPtr = mockModel.get();
+
+    m_mockViewPtr = new testing::NiceMock<MockEnggDiffGSASFittingView>();
+
+    auto mockMultiRunWidgetPresenter_sptr = boost::make_shared<
+        testing::NiceMock<MockEnggDiffMultiRunFittingWidgetPresenter>>();
+    m_mockMultiRunWidgetPtr = mockMultiRunWidgetPresenter_sptr.get();
+
+    auto pres_uptr =
+        Mantid::Kernel::make_unique<EnggDiffGSASFittingPresenterNoThread>(
+            std::move(mockModel), m_mockViewPtr,
+            mockMultiRunWidgetPresenter_sptr);
     return pres_uptr;
   }
 

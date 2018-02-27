@@ -59,6 +59,7 @@ set ( MOC_FILES
     EnggDiffFittingPresenter.h
     EnggDiffFittingPresWorker.h
     EnggDiffFittingViewQtWidget.h
+    EnggDiffGSASFittingPresenter.h
     EnggDiffGSASFittingViewQtWidget.h
     EnggDiffGSASFittingWorker.h
     EnggDiffractionPresenter.h

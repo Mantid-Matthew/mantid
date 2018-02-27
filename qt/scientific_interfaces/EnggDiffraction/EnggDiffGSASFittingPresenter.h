@@ -10,6 +10,8 @@
 
 #include "MantidAPI/MatrixWorkspace_fwd.h"
 
+#include <QObject>
+#include <QThread>
 #include <boost/shared_ptr.hpp>
 #include <memory>
 
@@ -18,7 +20,9 @@ namespace CustomInterfaces {
 
 // needs to be dll-exported for the tests
 class MANTIDQT_ENGGDIFFRACTION_DLL EnggDiffGSASFittingPresenter
-    : public IEnggDiffGSASFittingPresenter {
+    : public QObject,
+      public IEnggDiffGSASFittingPresenter {
+  Q_OBJECT
 
   friend void EnggDiffGSASFittingWorker::doRefinement();
 
@@ -38,6 +42,13 @@ public:
 
   void notify(IEnggDiffGSASFittingPresenter::Notification notif) override;
 
+protected:
+  /**
+   Perform a refinement on a run and add results to the model
+   @param params Input parameters for GSASIIRefineFitPeaks
+   */
+  void doRefinement(const GSASIIRefineFitPeaksParameters &params);
+
 private:
   void processDoRefinement();
   void processLoadRun();
@@ -52,12 +63,6 @@ private:
                          const Mantid::API::MatrixWorkspace_sptr ws) const;
 
   /**
-   Perform a refinement on a run and add results to the model
-   @param params Input parameters for GSASIIRefineFitPeaks
-   */
-  void doRefinement(const GSASIIRefineFitPeaksParameters &params);
-
-  /**
    Overplot fitted peaks for a run, and display lattice parameters and Rwp in
    the view
    @param runLabel Run number and bank ID of the run to display
@@ -66,7 +71,8 @@ private:
 
   /// Kick off the EnggDiffGSASWorker in a different thread to prevent GUI
   /// locking
-  void startAsyncFittingWorker(const GSASIIRefineFitPeaksParameters &params);
+  virtual void
+  startAsyncFittingWorker(const GSASIIRefineFitPeaksParameters &params);
 
   bool m_fittingFinishedOK;
 
@@ -77,6 +83,8 @@ private:
   IEnggDiffGSASFittingView *m_view;
 
   bool m_viewHasClosed;
+
+  QThread *m_workerThread;
 };
 
 } // namespace CustomInterfaces
