@@ -9,8 +9,8 @@ EnggDiffGSASFittingPresenter::EnggDiffGSASFittingPresenter(
     std::unique_ptr<IEnggDiffGSASFittingModel> model,
     IEnggDiffGSASFittingView *view,
     boost::shared_ptr<IEnggDiffMultiRunFittingWidgetPresenter> multiRunWidget)
-    : m_model(std::move(model)), m_multiRunWidget(multiRunWidget), m_view(view),
-      m_viewHasClosed(false) {}
+    : m_fittingFinishedOK(false), m_model(std::move(model)),
+      m_multiRunWidget(multiRunWidget), m_view(view), m_viewHasClosed(false) {}
 
 EnggDiffGSASFittingPresenter::~EnggDiffGSASFittingPresenter() {}
 
@@ -90,9 +90,20 @@ void EnggDiffGSASFittingPresenter::displayFitResults(const RunLabel &runLabel) {
   m_view->displayGamma(*gamma);
 }
 
-Mantid::API::MatrixWorkspace_sptr EnggDiffGSASFittingPresenter::doRefinement(
+void EnggDiffGSASFittingPresenter::doRefinement(
     const GSASIIRefineFitPeaksParameters &params) {
-  return m_model->doRefinement(params);
+  m_fittingFinishedOK = false;
+
+  try {
+    const auto fittedPeaks = m_model->doRefinement(params);
+    m_multiRunWidget->addFittedPeaks(params.runLabel, fittedPeaks);
+    displayFitResults(params.runLabel);
+  } catch (const std::exception &ex) {
+    m_view->showStatus("An error occurred in refinement");
+    m_view->userError("Refinement failed", ex.what());
+    return;
+  }
+  m_fittingFinishedOK = true;
 }
 
 void EnggDiffGSASFittingPresenter::processDoRefinement() {
@@ -115,18 +126,11 @@ void EnggDiffGSASFittingPresenter::processDoRefinement() {
   }
 
   m_view->showStatus("Refining run");
+
   const auto refinementParams =
       collectInputParameters(*runLabel, *inputWSOptional);
+  doRefinement(refinementParams);
 
-  try {
-    const auto fittedPeaks = doRefinement(refinementParams);
-
-    m_multiRunWidget->addFittedPeaks(*runLabel, fittedPeaks);
-    displayFitResults(*runLabel);
-  } catch (const std::exception &ex) {
-    m_view->showStatus("An error occurred in refinement");
-    m_view->userError("Refinement failed", ex.what());
-  }
   m_view->showStatus("Ready");
 }
 
@@ -157,6 +161,12 @@ void EnggDiffGSASFittingPresenter::processStart() {
 }
 
 void EnggDiffGSASFittingPresenter::processShutDown() { m_viewHasClosed = true; }
+
+void EnggDiffGSASFittingPresenter::startAsyncFittingWorker(
+    const GSASIIRefineFitPeaksParameters &params) {
+  auto *worker = new EnggDiffGSASFittingWorker(this, params);
+  worker->doRefinement();
+}
 
 } // MantidQt
 } // CustomInterfaces

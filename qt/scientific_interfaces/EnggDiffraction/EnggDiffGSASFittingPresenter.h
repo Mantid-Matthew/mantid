@@ -2,6 +2,7 @@
 #define MANTIDQTCUSTOMINTERFACES_ENGGDIFFRACTION_ENGGDIFFGSASFITTINGPRESENTER_H_
 
 #include "DllConfig.h"
+#include "EnggDiffGSASFittingWorker.h"
 #include "IEnggDiffGSASFittingModel.h"
 #include "IEnggDiffGSASFittingPresenter.h"
 #include "IEnggDiffGSASFittingView.h"
@@ -18,6 +19,8 @@ namespace CustomInterfaces {
 // needs to be dll-exported for the tests
 class MANTIDQT_ENGGDIFFRACTION_DLL EnggDiffGSASFittingPresenter
     : public IEnggDiffGSASFittingPresenter {
+
+  friend void EnggDiffGSASFittingWorker::doRefinement();
 
 public:
   EnggDiffGSASFittingPresenter(
@@ -49,12 +52,10 @@ private:
                          const Mantid::API::MatrixWorkspace_sptr ws) const;
 
   /**
-   Perform a refinement on a run
+   Perform a refinement on a run and add results to the model
    @param params Input parameters for GSASIIRefineFitPeaks
-   @return Fitted peaks workspace resulting from refinement
    */
-  Mantid::API::MatrixWorkspace_sptr
-  doRefinement(const GSASIIRefineFitPeaksParameters &params);
+  void doRefinement(const GSASIIRefineFitPeaksParameters &params);
 
   /**
    Overplot fitted peaks for a run, and display lattice parameters and Rwp in
@@ -62,6 +63,12 @@ private:
    @param runLabel Run number and bank ID of the run to display
   */
   void displayFitResults(const RunLabel &runLabel);
+
+  /// Kick off the EnggDiffGSASWorker in a different thread to prevent GUI
+  /// locking
+  void startAsyncFittingWorker(const GSASIIRefineFitPeaksParameters &params);
+
+  bool m_fittingFinishedOK;
 
   std::unique_ptr<IEnggDiffGSASFittingModel> m_model;
 
