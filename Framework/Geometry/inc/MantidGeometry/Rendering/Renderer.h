@@ -58,14 +58,6 @@ public:
   void renderTriangulated(detail::GeometryTriangulator &triangulator) const;
   /// Renders a sphere, cuboid, hexahedron, cone or cylinder
   void renderShape(const ShapeInfo &shapeInfo) const;
-  /// Renders structured geometry (used for rendering StructuredDetector)
-  void renderStructured(const StructuredDetector &structDet) const;
-
-  static std::pair<size_t, size_t> getCorrectedTextureSize(const size_t width,
-                                                           const size_t height);
-  static void renderRectangularBank(const Geometry::ComponentInfo &compInfo,
-                                    size_t index);
-
 private:
   /// General method for rendering geometry
   template <typename... Args> void render(Args &&... args) const &;
@@ -88,8 +80,6 @@ private:
   /// Render OpenCascade Shape
   void doRender(const TopoDS_Shape &ObjSurf) const;
 #endif
-  /// Renders structured geometry (used for rendering StructuredDetector)
-  void doRender(const StructuredDetector &structDet) const;
 };
 
 template <typename... Args> void Renderer::render(Args &&... args) const & {

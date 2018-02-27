@@ -111,6 +111,10 @@ public:
     return m_shape->getGeometryHandler();
   }
 
+  boost::shared_ptr<const GeometryHandler> getGeometryHandler() const override {
+    return m_shape->getGeometryHandler();
+  }
+
   std::string getShapeXML() const override { return m_shape->getShapeXML(); }
 
   void draw() const override { m_shape->draw(); }

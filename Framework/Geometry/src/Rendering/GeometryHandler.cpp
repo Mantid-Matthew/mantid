@@ -19,9 +19,6 @@ GeometryHandler::GeometryHandler(CSGObject *obj)
     : m_renderer(new detail::Renderer()),
       m_triangulator(new detail::GeometryTriangulator(obj)), m_obj(obj) {}
 
-GeometryHandler::GeometryHandler(StructuredDetector *comp)
-    : m_renderer(new detail::Renderer()), m_structDet(comp) {}
-
 GeometryHandler::GeometryHandler(const GeometryHandler &handler)
     : m_renderer(new detail::Renderer()) {
   if (handler.m_obj) {
@@ -33,8 +30,6 @@ GeometryHandler::GeometryHandler(const GeometryHandler &handler)
     m_objComp = handler.m_objComp;
   if (handler.m_shapeInfo)
     m_shapeInfo = handler.m_shapeInfo;
-  if (handler.m_structDet)
-    m_structDet = handler.m_structDet;
 }
 
 boost::shared_ptr<GeometryHandler> GeometryHandler::clone() const {
@@ -44,9 +39,7 @@ boost::shared_ptr<GeometryHandler> GeometryHandler::clone() const {
 GeometryHandler::~GeometryHandler() {}
 
 void GeometryHandler::render() const {
-  if (m_structDet)
-    m_renderer->renderStructured(*m_structDet);
-  else if (m_shapeInfo)
+  if (m_shapeInfo)
     m_renderer->renderShape(*m_shapeInfo);
   else if (m_objComp != nullptr)
     m_renderer->renderIObjComponent(*m_objComp);
