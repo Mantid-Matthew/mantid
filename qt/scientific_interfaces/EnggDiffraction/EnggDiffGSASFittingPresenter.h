@@ -66,6 +66,8 @@ private:
   collectInputParameters(const RunLabel &runLabel,
                          const Mantid::API::MatrixWorkspace_sptr ws) const;
 
+  void deleteWorkerThread();
+
   /**
    Overplot fitted peaks for a run, and display lattice parameters and Rwp in
    the view

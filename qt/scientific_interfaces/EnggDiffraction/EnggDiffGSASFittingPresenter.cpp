@@ -68,6 +68,13 @@ EnggDiffGSASFittingPresenter::collectInputParameters(
                                         xMin, xMax, refineSigma, refineGamma);
 }
 
+void EnggDiffGSASFittingPresenter::deleteWorkerThread() {
+  if (m_workerThread) {
+    delete m_workerThread;
+    m_workerThread = nullptr;
+  }
+}
+
 void EnggDiffGSASFittingPresenter::displayFitResults(const RunLabel &runLabel) {
   const auto latticeParams = m_model->getLatticeParams(runLabel);
   const auto rwp = m_model->getRwp(runLabel);
@@ -99,10 +106,12 @@ void EnggDiffGSASFittingPresenter::doRefinement(
 
 void EnggDiffGSASFittingPresenter::processRefinementFailed(
     const std::string &errorMessage) {
+  deleteWorkerThread();
   m_view->userWarning("Refinement failed", errorMessage);
 }
 
 void EnggDiffGSASFittingPresenter::processRefinementSucceeded() {
+  deleteWorkerThread();
   m_multiRunWidget->notify(
       IEnggDiffMultiRunFittingWidgetPresenter::Notification::UpdatePlot);
 }
