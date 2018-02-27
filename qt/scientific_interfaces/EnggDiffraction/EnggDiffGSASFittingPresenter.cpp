@@ -129,7 +129,7 @@ void EnggDiffGSASFittingPresenter::processDoRefinement() {
 
   const auto refinementParams =
       collectInputParameters(*runLabel, *inputWSOptional);
-  doRefinement(refinementParams);
+  startAsyncFittingWorker(refinementParams);
 
   m_view->showStatus("Ready");
 }
